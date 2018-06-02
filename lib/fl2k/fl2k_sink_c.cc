@@ -1,6 +1,8 @@
 /* -*- c++ -*- */
 /*
  * Copyright 2012 Dimitri Stolnikov <horiz0n@gmx.net>
+ * Copyright 2014 Hoernchen <la@tfc-server.de>
+ * Copyright 2018 Henning Paul <hnch@gmx.net>
  *
  * GNU Radio is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -205,7 +207,7 @@ int fl2k_sink_c::fl2k_callback(unsigned char *ibuffer, unsigned char *qbuffer, u
   {
     boost::mutex::scoped_lock lock( _buf_mutex );
 
-    if ( ! cb_pop_front_demux( &_cbuf, ibuffer, qbuffer ) ) { //kopiert aus dem FIFO in buffer. Buffer ist ein Pointer, der als Parameter kommen muss!
+    if ( ! cb_pop_front_demux( &_cbuf, ibuffer, qbuffer ) ) {
       memset(ibuffer, 0, length);
       memset(qbuffer, 0, length);
       std::cerr << "U" << std::flush;
@@ -220,7 +222,7 @@ int fl2k_sink_c::fl2k_callback(unsigned char *ibuffer, unsigned char *qbuffer, u
 
 std::string fl2k_sink_c::name()
 {
-  return "FL2K sink";
+  return "Fresco Logic FL2000 sink";
 }
 
 #ifdef USE_AVX
@@ -379,7 +381,7 @@ std::vector<std::string> fl2k_sink_c::get_devices( bool fake )
   fl2k_open(&dev, devnum);
   if (NULL != dev) {
       std::string args = "fl2k=devnum";
-      args += ",freq=100e6";
+      args += ",freq=dontcare";
       args += ",label='FL2K output'";
       devices.push_back( args );
     fl2k_close(dev);
@@ -397,22 +399,7 @@ osmosdr::meta_range_t fl2k_sink_c::get_sample_rates( void )
 {
   osmosdr::meta_range_t range;
 
-  /* we only add integer rates here because of better phase noise performance.
-   * the user is allowed to request arbitrary (fractional) rates within these
-   * boundaries. */
-
-  range += osmosdr::range_t( 10e6 );
-  range += osmosdr::range_t( 20e6 );
-  range += osmosdr::range_t( 30e6 );
-  range += osmosdr::range_t( 40e6 );
-  range += osmosdr::range_t( 50e6 );
-  range += osmosdr::range_t( 60e6 );
-  range += osmosdr::range_t( 70e6 );
-  range += osmosdr::range_t( 80e6 );
-  range += osmosdr::range_t( 90e6 );
-  range += osmosdr::range_t( 100e6 );
-  range += osmosdr::range_t( 110e6 );
-  range += osmosdr::range_t( 120e6 );
+  range += osmosdr::range_t(10e6, 160e6);
 
   return range;
 }
