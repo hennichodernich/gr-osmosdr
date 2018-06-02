@@ -249,6 +249,14 @@ GR_INCLUDE_SUBDIRECTORY(freesrp)
 endif(ENABLE_FREESRP)
 
 ########################################################################
+# Setup FL2K component
+########################################################################
+GR_REGISTER_COMPONENT("FL2000 support via libosmo-fl2k" ENABLE_FL2K LIBOSMOFL2K_FOUND)
+if(ENABLE_FL2K)
+GR_INCLUDE_SUBDIRECTORY(fl2k)
+endif(ENABLE_FL2K)
+
+########################################################################
 # Setup configuration file
 ########################################################################
 ADD_DEFINITIONS(-DHAVE_CONFIG_H=1)
