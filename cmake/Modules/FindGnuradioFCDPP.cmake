@@ -1,25 +1,18 @@
-INCLUDE(FindPkgConfig)
-PKG_CHECK_MODULES(PC_GNURADIO_FCDPP gnuradio-fcdproplus)
+if(NOT GNURADIO_FCDPP_FOUND)
+  pkg_check_modules (GNURADIO_FCDPP_PKG libgnuradio-fcdproplus)
+  find_path(GNURADIO_FCDPP_INCLUDE_DIRS NAMES fcdproplus/api.h
+    PATHS
+    ${GNURADIO_FCDPP_PKG_INCLUDE_DIRS}
+    /usr/include
+    /usr/local/include
+  )
 
-FIND_PATH(
-    GNURADIO_FCDPP_INCLUDE_DIRS
-    NAMES fcdproplus/api.h
-    HINTS $ENV{GNURADIO_FCDPP_DIR}/include
-        ${PC_GNURADIO_FCDPP_INCLUDEDIR}
-    PATHS /usr/local/include
-          /usr/include
-)
-
-FIND_LIBRARY(
-    GNURADIO_FCDPP_LIBRARIES
-    NAMES gnuradio-fcdproplus
-    HINTS $ENV{GNURADIO_FCDPP_DIR}/lib
-        ${PC_GNURADIO_FCDPP_LIBDIR}
-    PATHS /usr/local/lib
-          /usr/local/lib64
-          /usr/lib
-          /usr/lib64
-)
+  find_library(GNURADIO_FCDPP_LIBRARIES NAMES gnuradio-fcdproplus
+    PATHS
+    ${GNURADIO_FCDPP_PKG_LIBRARY_DIRS}
+    /usr/lib
+    /usr/local/lib
+  )
 
 if(GNURADIO_FCDPP_INCLUDE_DIRS AND GNURADIO_FCDPP_LIBRARIES)
   set(GNURADIO_FCDPP_FOUND TRUE CACHE INTERNAL "gnuradio-fcdproplus found")
@@ -29,6 +22,6 @@ else(GNURADIO_FCDPP_INCLUDE_DIRS AND GNURADIO_FCDPP_LIBRARIES)
   message(STATUS "gnuradio-fcdproplus not found.")
 endif(GNURADIO_FCDPP_INCLUDE_DIRS AND GNURADIO_FCDPP_LIBRARIES)
 
-INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(GNURADIO_FCDPP DEFAULT_MSG GNURADIO_FCDPP_LIBRARIES GNURADIO_FCDPP_INCLUDE_DIRS)
-MARK_AS_ADVANCED(GNURADIO_FCDPP_LIBRARIES GNURADIO_FCDPP_INCLUDE_DIRS)
+mark_as_advanced(GNURADIO_FCDPP_LIBRARIES GNURADIO_FCDPP_INCLUDE_DIRS)
+
+endif(NOT GNURADIO_FCDPP_FOUND)

@@ -1,19 +1,19 @@
 # Copyright 2012 Free Software Foundation, Inc.
 #
-# This file is part of GNU Radio
+# This file is part of gr-osmosdr
 #
-# GNU Radio is free software; you can redistribute it and/or modify
+# gr-osmosdr is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3, or (at your option)
 # any later version.
 #
-# GNU Radio is distributed in the hope that it will be useful,
+# gr-osmosdr is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with GNU Radio; see the file COPYING.  If not, write to
+# along with gr-osmosdr; see the file COPYING.  If not, write to
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
@@ -21,17 +21,18 @@
 # This file included, use CMake directory variables
 ########################################################################
 
-include_directories(
+target_include_directories(gnuradio-osmosdr PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${LIBAIRSPY_INCLUDE_DIRS}
 )
 
-set(airspy_srcs
-    ${CMAKE_CURRENT_SOURCE_DIR}/airspy_source_c.cc
+APPEND_LIB_LIST(
+    gnuradio::gnuradio-filter
+    ${Gnuradio-blocks_LIBRARIES}
+    ${LIBAIRSPY_LIBRARIES}
 )
 
-########################################################################
-# Append gnuradio-osmosdr library sources
-########################################################################
-list(APPEND gr_osmosdr_srcs ${airspy_srcs})
-list(APPEND gr_osmosdr_libs ${LIBAIRSPY_LIBRARIES} ${GNURADIO_FILTER_LIBRARIES} ${GNURADIO_BLOCKS_LIBRARIES})
+list(APPEND gr_osmosdr_srcs
+    ${CMAKE_CURRENT_SOURCE_DIR}/airspy_source_c.cc
+)
+set(gr_osmosdr_srcs ${gr_osmosdr_srcs} PARENT_SCOPE)
