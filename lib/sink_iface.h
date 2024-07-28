@@ -32,6 +32,8 @@
 class sink_iface
 {
 public:
+  virtual ~sink_iface() = default;
+
   /*!
    * Get the number of channels the underlying radio hardware offers.
    * \return the number of available channels
@@ -201,6 +203,7 @@ public:
 
   /*!
    * Select the active antenna of the underlying radio hardware.
+   * \param antenna the antenna name
    * \param chan the channel index 0 to N-1
    * \return the actual antenna's name
    */

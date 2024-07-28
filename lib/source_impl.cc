@@ -32,10 +32,6 @@
 #include <gnuradio/blocks/throttle.h>
 #include <gnuradio/constants.h>
 
-#ifdef ENABLE_OSMOSDR
-#include <osmosdr_src_c.h>
-#endif
-
 #ifdef ENABLE_FCD
 #include <fcd_source_c.h>
 #endif
@@ -56,15 +52,15 @@
 #include <uhd_source_c.h>
 #endif
 
+#ifdef ENABLE_MIRI
+#include <miri_source_c.h>
+#endif
+
 #ifdef ENABLE_IIO
 #include <plutosdr_source_c.h>
 #include <hnchboard2_source_c.h>
 #include <hnchboard2u_source_c.h>
 #include <hnchbbboard_source_c.h>
-#endif
-
-#ifdef ENABLE_MIRI
-#include <miri_source_c.h>
 #endif
 
 #ifdef ENABLE_SDRPLAY
@@ -99,8 +95,16 @@
 #include <redpitaya_source_c.h>
 #endif
 
+#ifdef ENABLE_PAVELDEMINSDR
+#include <paveldeminsdr_source_c.h>
+#endif
+
 #ifdef ENABLE_FREESRP
 #include <freesrp_source_c.h>
+#endif
+
+#ifdef ENABLE_XTRX
+#include <xtrx_source_c.h>
 #endif
 
 #include "arg_helpers.h"
@@ -135,9 +139,6 @@ source_impl::source_impl( const std::string &args )
 #ifdef ENABLE_FILE
   dev_types.push_back("file");
 #endif
-#ifdef ENABLE_OSMOSDR
-  dev_types.push_back("osmosdr");
-#endif
 #ifdef ENABLE_FCD
   dev_types.push_back("fcd");
 #endif
@@ -150,14 +151,14 @@ source_impl::source_impl( const std::string &args )
 #ifdef ENABLE_UHD
   dev_types.push_back("uhd");
 #endif
+#ifdef ENABLE_MIRI
+  dev_types.push_back("miri");
+#endif
 #ifdef ENABLE_IIO
   dev_types.push_back("plutosdr");
   dev_types.push_back("hnchboard2");
   dev_types.push_back("hnchboard2u");
   dev_types.push_back("hnchbbboard");
-#endif
-#ifdef ENABLE_MIRI
-  dev_types.push_back("miri");
 #endif
 #ifdef ENABLE_SDRPLAY
   dev_types.push_back("sdrplay");
@@ -183,8 +184,14 @@ source_impl::source_impl( const std::string &args )
 #ifdef ENABLE_REDPITAYA
   dev_types.push_back("redpitaya");
 #endif
+#ifdef ENABLE_PAVELDEMINSDR
+  dev_types.push_back("paveldeminsdr");
+#endif
 #ifdef ENABLE_FREESRP
   dev_types.push_back("freesrp");
+#endif
+#ifdef ENABLE_XTRX
+  dev_types.push_back("xtrx");
 #endif
   std::cerr << "gr-osmosdr "
             << GR_OSMOSDR_VERSION << " (" << GR_OSMOSDR_LIBVER << ") "
@@ -199,6 +206,7 @@ source_impl::source_impl( const std::string &args )
   dev_types.push_back("sdr-ip");
   dev_types.push_back("netsdr");
   dev_types.push_back("cloudiq");
+  dev_types.push_back("cloudsdr");
 #endif
 
   for (std::string arg : arg_list) {
@@ -213,10 +221,6 @@ source_impl::source_impl( const std::string &args )
 
   if ( ! device_specified ) {
     std::vector< std::string > dev_list;
-#ifdef ENABLE_OSMOSDR
-    for (std::string dev : osmosdr_src_c::get_devices())
-      dev_list.push_back( dev );
-#endif
 #ifdef ENABLE_FCD
     for (std::string dev : fcd_source_c::get_devices())
       dev_list.push_back( dev );
@@ -229,6 +233,10 @@ source_impl::source_impl( const std::string &args )
     for (std::string dev : uhd_source_c::get_devices())
       dev_list.push_back( dev );
 #endif
+#ifdef ENABLE_MIRI
+    for (std::string dev : miri_source_c::get_devices())
+      dev_list.push_back( dev );
+#endif
 #ifdef ENABLE_IIO
     for (std::string dev : plutosdr_source_c::get_devices())
       dev_list.push_back( dev );
@@ -238,10 +246,6 @@ source_impl::source_impl( const std::string &args )
       dev_list.push_back( dev );
     for (std::string dev : hnchbbboard_source_c::get_devices())
       dev_list.push_back( dev );      
-#endif
-#ifdef ENABLE_MIRI
-    for (std::string dev : miri_source_c::get_devices())
-      dev_list.push_back( dev );
 #endif
 #ifdef ENABLE_SDRPLAY
     for (std::string dev : sdrplay_source_c::get_devices())
@@ -275,8 +279,16 @@ source_impl::source_impl( const std::string &args )
     for (std::string dev : redpitaya_source_c::get_devices())
       dev_list.push_back( dev );
 #endif
+#ifdef ENABLE_PAVELDEMINSDR
+    for (std::string dev : paveldeminsdr_source_c::get_devices())
+      dev_list.push_back( dev );
+#endif
 #ifdef ENABLE_FREESRP
     for (std::string dev : freesrp_source_c::get_devices())
+      dev_list.push_back( dev );
+#endif
+#ifdef ENABLE_XTRX
+    for (std::string dev : xtrx_source_c::get_devices())
       dev_list.push_back( dev );
 #endif
 
@@ -300,13 +312,6 @@ source_impl::source_impl( const std::string &args )
 
     source_iface *iface = NULL;
     gr::basic_block_sptr block;
-
-#ifdef ENABLE_OSMOSDR
-    if ( dict.count("osmosdr") ) {
-      osmosdr_src_c_sptr src = osmosdr_make_src_c( arg );
-      block = src; iface = src.get();
-    }
-#endif
 
 #ifdef ENABLE_FCD
     if ( dict.count("fcd") ) {
@@ -343,6 +348,13 @@ source_impl::source_impl( const std::string &args )
     }
 #endif
 
+#ifdef ENABLE_MIRI
+    if ( dict.count("miri") ) {
+      miri_source_c_sptr src = make_miri_source_c( arg );
+      block = src; iface = src.get();
+    }
+#endif
+
 #ifdef ENABLE_IIO
     if ( dict.count("plutosdr") ) {
       plutosdr_source_c_sptr src = make_plutosdr_source_c( arg );
@@ -358,13 +370,6 @@ source_impl::source_impl( const std::string &args )
     }
     if ( dict.count("hnchbbboard") ) {
       hnchbbboard_source_c_sptr src = make_hnchbbboard_source_c( arg );
-      block = src; iface = src.get();
-    }
-#endif
-
-#ifdef ENABLE_MIRI
-    if ( dict.count("miri") ) {
-      miri_source_c_sptr src = make_miri_source_c( arg );
       block = src; iface = src.get();
     }
 #endif
@@ -395,7 +400,8 @@ source_impl::source_impl( const std::string &args )
          dict.count("sdr-iq") ||
          dict.count("sdr-ip") ||
          dict.count("netsdr") ||
-         dict.count("cloudiq") ) {
+         dict.count("cloudiq") ||
+         dict.count("cloudsdr") ) {
       rfspace_source_c_sptr src = make_rfspace_source_c( arg );
       block = src; iface = src.get();
     }
@@ -429,6 +435,13 @@ source_impl::source_impl( const std::string &args )
     }
 #endif
 
+#ifdef ENABLE_PAVELDEMINSDR
+    if ( dict.count("paveldeminsdr") ) {
+      paveldeminsdr_source_c_sptr src = make_paveldeminsdr_source_c( arg );
+      block = src; iface = src.get();
+    }
+#endif
+
 #ifdef ENABLE_FREESRP
     if ( dict.count("freesrp") ) {
       freesrp_source_c_sptr src = make_freesrp_source_c( arg );
@@ -436,7 +449,14 @@ source_impl::source_impl( const std::string &args )
     }
 #endif
 
-    if ( iface != NULL && long(block.get()) != 0 ) {
+#ifdef ENABLE_XTRX
+    if ( dict.count("xtrx") ) {
+      xtrx_source_c_sptr src = make_xtrx_source_c( arg );
+      block = src; iface = src.get();
+    }
+#endif
+
+    if (iface != NULL && reinterpret_cast<std::intptr_t>(block.get()) != 0 ) {
       _devs.push_back( iface );
 
       for (size_t i = 0; i < iface->get_num_channels(); i++) {
@@ -456,13 +476,20 @@ source_impl::source_impl( const std::string &args )
         connect(block, i, self(), channel++);
 #endif
       }
-    } else if ( (iface != NULL) || (long(block.get()) != 0) )
+    } else if ((iface != NULL) || (reinterpret_cast<std::intptr_t>(block.get()) != 0))
       throw std::runtime_error("Either iface or block are NULL.");
 
   }
 
   if (!_devs.size())
     throw std::runtime_error("No devices specified via device arguments.");
+
+  /* Populate the _gain and _gain_mode arrays with the hardware state */
+  for ( source_iface *dev : _devs )
+    for (size_t dev_chan = 0; dev_chan < dev->get_num_channels(); dev_chan++) {
+      _gain_mode[dev_chan] = dev->get_gain_mode(dev_chan);
+      _gain[dev_chan] = dev->get_gain(dev_chan);
+    }
 }
 
 size_t source_impl::get_num_channels()
@@ -650,7 +677,7 @@ bool source_impl::set_gain_mode( bool automatic, size_t chan )
   for (source_iface *dev : _devs)
     for (size_t dev_chan = 0; dev_chan < dev->get_num_channels(); dev_chan++)
       if ( chan == channel++ ) {
-        if ( _gain_mode[ chan ] != automatic ) {
+        if ( (_gain_mode.count(chan) == 0) || (_gain_mode[ chan ] != automatic) ) {
           _gain_mode[ chan ] = automatic;
           bool mode = dev->set_gain_mode( automatic, dev_chan );
           if (!automatic) // reapply gain value when switched to manual mode

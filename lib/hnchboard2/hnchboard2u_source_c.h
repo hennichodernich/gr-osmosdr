@@ -29,7 +29,7 @@
 
 class hnchboard2u_source_c;
 
-typedef boost::shared_ptr< hnchboard2u_source_c > hnchboard2u_source_c_sptr;
+typedef std::shared_ptr< hnchboard2u_source_c > hnchboard2u_source_c_sptr;
 
 hnchboard2u_source_c_sptr make_hnchboard2u_source_c(const std::string &args = "");
 

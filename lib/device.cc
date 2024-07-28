@@ -29,10 +29,6 @@
 #include "config.h"
 #endif
 
-#ifdef ENABLE_OSMOSDR
-#include <osmosdr_src_c.h>
-#endif
-
 #ifdef ENABLE_FCD
 #include <fcd_source_c.h>
 #endif
@@ -53,15 +49,15 @@
 #include <uhd_source_c.h>
 #endif
 
+#ifdef ENABLE_MIRI
+#include <miri_source_c.h>
+#endif
+
 #ifdef ENABLE_IIO
 #include <plutosdr_source_c.h>
 #include <hnchboard2_source_c.h>
 #include <hnchboard2u_source_c.h>
 #include <hnchbbboard_source_c.h>
-#endif
-
-#ifdef ENABLE_MIRI
-#include <miri_source_c.h>
 #endif
 
 #ifdef ENABLE_SDRPLAY
@@ -94,6 +90,10 @@
 
 #ifdef ENABLE_REDPITAYA
 #include <redpitaya_source_c.h>
+#endif
+
+#ifdef ENABLE_PAVELDEMINSDR
+#include <paveldeminsdr_source_c.h>
 #endif
 
 #ifdef ENABLE_FREESRP
@@ -156,10 +156,6 @@ devices_t device::find(const device_t &hint)
 
   devices_t devices;
 
-#ifdef ENABLE_OSMOSDR
-  for (std::string dev : osmosdr_src_c::get_devices())
-    devices.push_back( device_t(dev) );
-#endif
 #ifdef ENABLE_FCD
   for (std::string dev : fcd_source_c::get_devices())
     devices.push_back( device_t(dev) );
@@ -172,6 +168,10 @@ devices_t device::find(const device_t &hint)
   for (std::string dev : uhd_source_c::get_devices())
     devices.push_back( device_t(dev) );
 #endif
+#ifdef ENABLE_MIRI
+  for (std::string dev : miri_source_c::get_devices())
+    devices.push_back( device_t(dev) );
+#endif
 #ifdef ENABLE_IIO
   for (std::string dev : plutosdr_source_c::get_devices())
     devices.push_back( device_t(dev) );
@@ -180,10 +180,6 @@ devices_t device::find(const device_t &hint)
   for (std::string dev : hnchboard2u_source_c::get_devices())
     devices.push_back( device_t(dev) );
   for (std::string dev : hnchbbboard_source_c::get_devices())
-    devices.push_back( device_t(dev) );
-#endif
-#ifdef ENABLE_MIRI
-  for (std::string dev : miri_source_c::get_devices())
     devices.push_back( device_t(dev) );
 #endif
 #ifdef ENABLE_SDRPLAY
@@ -229,6 +225,10 @@ devices_t device::find(const device_t &hint)
 #endif
 #ifdef ENABLE_REDPITAYA
   for (std::string dev : redpitaya_source_c::get_devices( fake ))
+    devices.push_back( device_t(dev) );
+#endif
+#ifdef ENABLE_PAVELDEMINSDR
+  for (std::string dev : paveldeminsdr_source_c::get_devices( fake ))
     devices.push_back( device_t(dev) );
 #endif
 #ifdef ENABLE_FILE

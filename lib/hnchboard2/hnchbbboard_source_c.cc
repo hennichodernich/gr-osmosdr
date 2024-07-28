@@ -158,7 +158,7 @@ double hnchbbboard_source_c::get_freq_corr( size_t chan)
 std::vector<std::string> hnchbbboard_source_c::get_gain_names( size_t chan )
 {
   std::vector< std::string > gains;
-  gains.push_back( "BB" );
+  gains.push_back( "Dummy" );
   
   return gains;
 }

@@ -28,7 +28,7 @@ target_include_directories(gnuradio-osmosdr PRIVATE
 )
 
 APPEND_LIB_LIST(
-	${GNURADIO_IIO_LIBRARIES}
+	gnuradio::gnuradio-iio
 	${IIO_LIBRARIES}
 )
 

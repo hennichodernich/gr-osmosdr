@@ -38,7 +38,7 @@ class source;
 class OSMOSDR_API source : virtual public gr::hier_block2
 {
 public:
-  typedef boost::shared_ptr< source > sptr;
+  typedef std::shared_ptr< source > sptr;
 
   /*!
    * \brief Return a shared_ptr to a new instance of source.
@@ -63,6 +63,7 @@ public:
    *
    * \param seek_point	sample offset in file
    * \param whence	one of SEEK_SET, SEEK_CUR, SEEK_END (man fseek)
+   * \param chan	the channel index 0 to N-1
    * \return true on success
    */
   virtual bool seek( long seek_point, int whence, size_t chan = 0 ) = 0;

@@ -20,11 +20,6 @@
 #ifndef INCLUDED_RFSPACE_SOURCE_C_H
 #define INCLUDED_RFSPACE_SOURCE_C_H
 
-//#define USE_ASIO
-
-#ifdef USE_ASIO
-#include <boost/asio.hpp>
-#endif
 #include <gnuradio/thread/thread.h>
 #include <gnuradio/block.h>
 #include <gnuradio/sync_block.h>
@@ -36,10 +31,6 @@
 
 #include "osmosdr/ranges.h"
 #include "source_iface.h"
-#ifdef USE_ASIO
-using boost::asio::ip::tcp;
-using boost::asio::ip::udp;
-#endif
 class rfspace_source_c;
 
 #ifndef SOCKET
@@ -47,7 +38,7 @@ class rfspace_source_c;
 #endif
 
 /*
- * We use boost::shared_ptr's instead of raw pointers for all access
+ * We use std::shared_ptr's instead of raw pointers for all access
  * to gr_blocks (and many other data structures).  The shared_ptr gets
  * us transparent reference counting, which greatly simplifies storage
  * management issues.  This is especially helpful in our hybrid
@@ -55,9 +46,9 @@ class rfspace_source_c;
  *
  * See http://www.boost.org/libs/smart_ptr/smart_ptr.htm
  *
- * As a convention, the _sptr suffix indicates a boost::shared_ptr
+ * As a convention, the _sptr suffix indicates a std::shared_ptr
  */
-typedef boost::shared_ptr<rfspace_source_c> rfspace_source_c_sptr;
+typedef std::shared_ptr<rfspace_source_c> rfspace_source_c_sptr;
 
 /*!
  * \brief Return a shared_ptr to a new instance of rfspace_source_c.
@@ -139,20 +130,14 @@ private: /* members */
     RFSPACE_SDR_IQ,
     RFSPACE_SDR_IP,
     RFSPACE_NETSDR,
-    RFSPACE_CLOUDIQ
+    RFSPACE_CLOUDIQ,
+    RFSPACE_CLOUDSDR
   };
 
   radio_type _radio;
 
-#ifdef USE_ASIO
-  boost::asio::io_service _io_service;
-  tcp::resolver _resolver;
-  tcp::socket _t;
-  udp::socket _u;
-#else
   SOCKET _tcp;
   SOCKET _udp;
-#endif
   int _usb;
   bool _running;
   bool _keep_running;

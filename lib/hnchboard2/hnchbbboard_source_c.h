@@ -29,7 +29,7 @@
 
 class hnchbbboard_source_c;
 
-typedef boost::shared_ptr< hnchbbboard_source_c > hnchbbboard_source_c_sptr;
+typedef std::shared_ptr< hnchbbboard_source_c > hnchbbboard_source_c_sptr;
 
 hnchbbboard_source_c_sptr make_hnchbbboard_source_c(const std::string &args = "");
 

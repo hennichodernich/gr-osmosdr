@@ -23,14 +23,20 @@
 
 target_include_directories(gnuradio-osmosdr PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${LIBOSMOSDR_INCLUDE_DIRS}
 )
 
 APPEND_LIB_LIST(
-    ${LIBOSMOSDR_LIBRARIES}
+    ${Gnuradio-blocks_LIBRARIES}
 )
 
+if(WIN32)
+    APPEND_LIB_LIST(
+        ws2_32
+    )
+endif()
+
 list(APPEND gr_osmosdr_srcs
-    ${CMAKE_CURRENT_SOURCE_DIR}/osmosdr_src_c.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/paveldeminsdr_source_c.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/paveldeminsdr_common.cc
 )
 set(gr_osmosdr_srcs ${gr_osmosdr_srcs} PARENT_SCOPE)

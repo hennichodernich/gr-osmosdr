@@ -112,6 +112,15 @@ bladerf_source_c::bladerf_source_c(const std::string &args) :
   /* RX Mux */
   set_rx_mux_mode(dict.count("rxmux") ? dict["rxmux"] : "baseband");
 
+  /* Ref in frequency */
+  if (dict.count("refin_freq")) {
+    status = bladerf_set_pll_refclk(_dev.get(), boost::lexical_cast< uint64_t >(dict["refin_freq"]));
+    if (status != 0) {
+      BLADERF_WARNING("Problem while setting refin_freq: " <<
+                      bladerf_strerror(status));
+    }
+  }
+
   /* AGC mode */
   if (dict.count("agc_mode")) {
     set_agc_mode(dict["agc_mode"]);
@@ -230,11 +239,9 @@ bool bladerf_source_c::start()
 
   for (size_t ch = 0; ch < get_max_channels(); ++ch) {
     bladerf_channel brfch = BLADERF_CHANNEL_RX(ch);
-    if (get_channel_enable(brfch)) {
-      status = bladerf_enable_module(_dev.get(), brfch, true);
-      if (status != 0) {
-        BLADERF_THROW_STATUS(status, "bladerf_enable_module failed");
-      }
+    status = bladerf_enable_module(_dev.get(), brfch, get_channel_enable(brfch));
+    if (status != 0) {
+      BLADERF_THROW_STATUS(status, "bladerf_enable_module failed");
     }
   }
 
@@ -344,7 +351,7 @@ int bladerf_source_c::work(int noutput_items,
     memcpy(out[0], _32fcbuf, sizeof(gr_complex) * noutput_items);
   }
 
-  return noutput_items;
+  return noutput_items/(get_num_channels());
 }
 
 osmosdr::meta_range_t bladerf_source_c::get_sample_rates()

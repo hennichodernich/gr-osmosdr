@@ -48,6 +48,9 @@
 #ifdef ENABLE_FREESRP
 #include <freesrp_sink_c.h>
 #endif
+#ifdef ENABLE_XTRX
+#include "xtrx_sink_c.h"
+#endif
 #ifdef ENABLE_FILE
 #include "file_sink_c.h"
 #endif
@@ -99,6 +102,9 @@ sink_impl::sink_impl( const std::string &args )
 #ifdef ENABLE_FREESRP
   dev_types.push_back("freesrp");
 #endif
+#ifdef ENABLE_XTRX
+  dev_types.push_back("xtrx");
+#endif
 #ifdef ENABLE_FILE
   dev_types.push_back("file");
 #endif
@@ -145,6 +151,10 @@ sink_impl::sink_impl( const std::string &args )
 #endif
 #ifdef ENABLE_FREESRP
     for (std::string dev : freesrp_sink_c::get_devices())
+      dev_list.push_back( dev );
+#endif
+#ifdef ENABLE_XTRX
+    for (std::string dev : xtrx_sink_c::get_devices())
       dev_list.push_back( dev );
 #endif
 #ifdef ENABLE_FILE
@@ -209,6 +219,12 @@ sink_impl::sink_impl( const std::string &args )
       block = sink; iface = sink.get();
     }
 #endif
+#ifdef ENABLE_XTRX
+    if ( dict.count("xtrx") ) {
+      xtrx_sink_c_sptr sink = make_xtrx_sink_c( arg );
+      block = sink; iface = sink.get();
+    }
+#endif
 #ifdef ENABLE_FILE
     if ( dict.count("file") ) {
       file_sink_c_sptr sink = make_file_sink_c( arg );
@@ -216,19 +232,26 @@ sink_impl::sink_impl( const std::string &args )
     }
 #endif
 
-    if ( iface != NULL && long(block.get()) != 0 ) {
+    if (iface != NULL && reinterpret_cast<std::intptr_t>(block.get()) != 0) {
       _devs.push_back( iface );
 
       for (size_t i = 0; i < iface->get_num_channels(); i++) {
         connect(self(), channel++, block, i);
       }
-    } else if ( (iface != NULL) || (long(block.get()) != 0) )
+    } else if ((iface != NULL) || (reinterpret_cast<std::intptr_t>(block.get()) != 0))
       throw std::runtime_error("Either iface or block are NULL.");
 
   }
 
   if (!_devs.size())
     throw std::runtime_error("No devices specified via device arguments.");
+
+  /* Populate the _gain and _gain_mode arrays with the hardware state */
+  for ( sink_iface *dev : _devs )
+    for (size_t dev_chan = 0; dev_chan < dev->get_num_channels(); dev_chan++) {
+      _gain_mode[dev_chan] = dev->get_gain_mode(dev_chan);
+      _gain[dev_chan] = dev->get_gain(dev_chan);
+    }
 }
 
 size_t sink_impl::get_num_channels()
@@ -387,7 +410,7 @@ bool sink_impl::set_gain_mode( bool automatic, size_t chan )
   for (sink_iface *dev : _devs)
     for (size_t dev_chan = 0; dev_chan < dev->get_num_channels(); dev_chan++)
       if ( chan == channel++ ) {
-        if ( _gain_mode[ chan ] != automatic ) {
+        if ( (_gain_mode.count(chan) == 0) || (_gain_mode[ chan ] != automatic) ) {
           _gain_mode[ chan ] = automatic;
           bool mode = dev->set_gain_mode( automatic, dev_chan );
           if (!automatic) // reapply gain value when switched to manual mode

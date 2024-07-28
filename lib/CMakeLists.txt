@@ -44,7 +44,7 @@ endif()
 #this appends all unnamed implicit macro args!
 MACRO (APPEND_LIB_LIST)
       SET (gr_osmosdr_libs "${gr_osmosdr_libs};${ARGN}" CACHE INTERNAL "lib list")
-ENDMACRO (APPEND_INTERNAL_LIST)
+ENDMACRO (APPEND_LIB_LIST)
 
 set(gr_osmosdr_libs "" CACHE INTERNAL "lib that accumulates link targets")
 
@@ -136,17 +136,9 @@ if(ENABLE_IQBALANCE)
 endif(ENABLE_IQBALANCE)
 
 ########################################################################
-# Setup OsmoSDR component
-########################################################################
-#GR_REGISTER_COMPONENT("sysmocom OsmoSDR" ENABLE_OSMOSDR LIBOSMOSDR_FOUND)
-#if(ENABLE_OSMOSDR)
-#    add_subdirectory(osmosdr)
-#endif(ENABLE_OSMOSDR)
-
-########################################################################
 # Setup FCD component
 ########################################################################
-GR_REGISTER_COMPONENT("FUNcube Dongle" ENABLE_FCD GNURADIO_FCDPP_FOUND)
+GR_REGISTER_COMPONENT("FUNcube Dongle" ENABLE_FCD GNURADIO_FUNCUBE_FOUND)
 if(ENABLE_FCD)
     add_subdirectory(fcd)
 endif(ENABLE_FCD)
@@ -186,7 +178,7 @@ endif(ENABLE_UHD)
 ########################################################################
 # Setup IIO component
 ########################################################################
-GR_REGISTER_COMPONENT("IIO Devices" ENABLE_IIO GNURADIO_IIO_FOUND)
+GR_REGISTER_COMPONENT("IIO Devices" ENABLE_IIO gnuradio-iio_FOUND)
 if(ENABLE_IIO)
     add_subdirectory(plutosdr)
     add_subdirectory(hnchboard2)
@@ -195,10 +187,10 @@ endif(ENABLE_IIO)
 ########################################################################
 # Setup MiriSDR component
 ########################################################################
-#GR_REGISTER_COMPONENT("Osmocom MiriSDR" ENABLE_MIRI LIBMIRISDR_FOUND)
-#if(ENABLE_MIRI)
-#    add_subdirectory(miri)
-#endif(ENABLE_MIRI)
+GR_REGISTER_COMPONENT("Osmocom MiriSDR" ENABLE_MIRI LIBMIRISDR_FOUND)
+if(ENABLE_MIRI)
+    add_subdirectory(miri)
+endif(ENABLE_MIRI)
 
 ########################################################################
 # Setup SDRplay component
@@ -267,12 +259,28 @@ if(ENABLE_REDPITAYA)
 endif(ENABLE_REDPITAYA)
 
 ########################################################################
+# Setup Pavel Demin SDR Rx component
+########################################################################
+GR_REGISTER_COMPONENT("Pavel Demin SDR Rx" ENABLE_PAVELDEMINSDR)
+if(ENABLE_PAVELDEMINSDR)
+    add_subdirectory(paveldeminsdr)
+endif(ENABLE_PAVELDEMINSDR)
+
+########################################################################
 # Setup FreeSRP component
 ########################################################################
 GR_REGISTER_COMPONENT("FreeSRP support" ENABLE_FREESRP LIBFREESRP_FOUND)
 if(ENABLE_FREESRP)
     add_subdirectory(freesrp)
 endif(ENABLE_FREESRP)
+
+########################################################################
+# Setup XTRX component
+########################################################################
+GR_REGISTER_COMPONENT("XTRX SDR" ENABLE_XTRX LIBXTRX_FOUND)
+if(ENABLE_XTRX)
+    add_subdirectory(xtrx)
+endif(ENABLE_XTRX)
 
 ########################################################################
 # Setup configuration file

@@ -27,7 +27,6 @@
 #include "config.h"
 #endif
 
-#ifndef USE_ASIO
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -35,7 +34,6 @@
 #include <netinet/udp.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#endif
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -54,9 +52,6 @@
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
-#ifdef USE_ASIO
-#include <boost/asio/deadline_timer.hpp>
-#endif
 
 #include <gnuradio/io_signature.h>
 
@@ -64,9 +59,6 @@
 #include "rfspace_source_c.h"
 
 using namespace boost::assign;
-#ifdef USE_ASIO
-using boost::asio::deadline_timer;
-#endif
 
 #define DEFAULT_HOST  "127.0.0.1" /* We assume a running "siqs" from CuteSDR project */
 #define DEFAULT_PORT  50000
@@ -102,15 +94,8 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
                     gr::io_signature::make (MIN_IN, MAX_IN, sizeof (gr_complex)),
                     gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (gr_complex))),
     _radio(RADIO_UNKNOWN),
-#ifdef USE_ASIO
-    _io_service(),
-    _resolver(_io_service),
-    _t(_io_service),
-    _u(_io_service),
-#else
     _tcp(-1),
     _udp(-1),
-#endif
     _usb(-1),
     _running(false),
     _keep_running(false),
@@ -137,6 +122,9 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
   if ( dict.count("cloudiq") )
     dict["rfspace"] = dict["cloudiq"];
 
+  if ( dict.count("cloudsdr") )
+    dict["rfspace"] = dict["cloudsdr"];
+
   if ( dict.count("rfspace") )
   {
     std::string value = dict["rfspace"];
@@ -160,6 +148,9 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
 
         if ( first.count("cloudiq") )
           value = first["cloudiq"];
+
+        if ( first.count("cloudsdr") )
+          value = first["cloudsdr"];
 
         dict["rfspace"] = value;
         dict["label"] = first["label"];
@@ -239,30 +230,6 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
     /* SDR-IP 4.4.4 Data Output UDP IP and Port Address */
     /* NETSDR 4.4.3 Data Output UDP IP and Port Address */
 
-#ifdef USE_ASIO
-
-    tcp::resolver::query query(tcp::v4(), host.c_str(), port_str.c_str());
-    tcp::resolver::iterator iterator = _resolver.resolve(query);
-
-    boost::system::error_code ec;
-
-    boost::asio::connect(_t, iterator, ec);
-    if ( ec )
-      throw std::runtime_error(ec.message() + " (" + host + ":" + port_str + ")");
-
-    _u.open(udp::v4(), ec);
-    if ( ec )
-      throw std::runtime_error(ec.message());
-
-    _u.bind(udp::endpoint(udp::v4(), DEFAULT_PORT), ec);
-      if ( ec )
-        throw std::runtime_error(ec.message());
-
-    _u.set_option(udp::socket::reuse_address(true));
-    _t.set_option(udp::socket::reuse_address(true));
-
-#else
-
     if ( (_tcp = socket(AF_INET, SOCK_STREAM, 0) ) < 0)
     {
       throw std::runtime_error("Could not create TCP socket");
@@ -330,7 +297,7 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
     memset(&host_sa, 0, sizeof(host_sa));
     host_sa.sin_family = AF_INET;
     host_sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    host_sa.sin_port = htons(DEFAULT_PORT);
+    host_sa.sin_port = htons(port); /* host port must match sdr port */
 
     if ( bind(_udp, (struct sockaddr *)&host_sa, sizeof(host_sa)) < 0 )
     {
@@ -338,8 +305,6 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
       close(_udp);
       throw std::runtime_error("Bind of UDP socket failed: " + std::string(strerror(errno)));
     }
-
-#endif
 
   }
 
@@ -377,6 +342,8 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
       _radio = RFSPACE_NETSDR;
     else if ( 0x434C4951 == product_id ) /* CloudIQ Product ID */
       _radio = RFSPACE_CLOUDIQ;
+    else if ( 0x434C5344 == product_id ) /* CloudSDR Product ID */
+      _radio = RFSPACE_CLOUDSDR;
     else
       std::cerr << "UNKNOWN ";
   }
@@ -415,7 +382,8 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
 
   if ( RFSPACE_NETSDR == _radio ||
        RFSPACE_SDR_IP == _radio ||
-       RFSPACE_CLOUDIQ == _radio)
+       RFSPACE_CLOUDIQ == _radio ||
+       RFSPACE_CLOUDSDR == _radio)
   {
     unsigned char hardver[] = { 0x05, 0x20, 0x04, 0x00, 0x02 };
     if ( transaction( hardver, sizeof(hardver), response ) )
@@ -423,7 +391,8 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
   }
 
   if ( RFSPACE_NETSDR == _radio ||
-       RFSPACE_CLOUDIQ == _radio)
+       RFSPACE_CLOUDIQ == _radio ||
+       RFSPACE_CLOUDSDR == _radio)
   {
     unsigned char fpgaver[] = { 0x05, 0x20, 0x04, 0x00, 0x03 };
     if ( transaction( fpgaver, sizeof(fpgaver), response ) )
@@ -472,7 +441,8 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
 
     set_bandwidth( 0 ); /* switch to automatic filter selection by default */
   }
-  else if ( RFSPACE_CLOUDIQ == _radio)
+  else if ( RFSPACE_CLOUDIQ == _radio ||
+	    RFSPACE_CLOUDSDR == _radio)
   {
     set_sample_rate( 240000 );
     set_bandwidth( 0 );
@@ -481,7 +451,8 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
   /* start TCP keepalive thread */
   if ( RFSPACE_NETSDR == _radio ||
        RFSPACE_SDR_IP == _radio ||
-       RFSPACE_CLOUDIQ == _radio )
+       RFSPACE_CLOUDIQ == _radio ||
+       RFSPACE_CLOUDSDR == _radio )
   {
     _run_tcp_keepalive_task = true;
     _thread = gr::thread::thread( boost::bind(&rfspace_source_c::tcp_keepalive_task, this) );
@@ -506,10 +477,8 @@ rfspace_source_c::rfspace_source_c (const std::string &args)
  */
 rfspace_source_c::~rfspace_source_c ()
 {
-#ifndef USE_ASIO
   close(_tcp);
   close(_udp);
-#endif
 
   if ( RFSPACE_SDR_IQ == _radio )
   {
@@ -600,11 +569,6 @@ bool rfspace_source_c::transaction( const unsigned char *cmd, size_t size,
   {
     std::lock_guard<std::mutex> lock(_tcp_lock);
 
-#ifdef USE_ASIO
-    _t.write_some( boost::asio::buffer(cmd, size) );
-
-    rx_bytes = _t.read_some( boost::asio::buffer(data, sizeof(data)) );
-#else
     if ( write(_tcp, cmd, size) != (int)size )
       return false;
 
@@ -624,7 +588,6 @@ bool rfspace_source_c::transaction( const unsigned char *cmd, size_t size,
       return false;
 
     rx_bytes = 2 + length; /* header + payload */
-#endif
   }
 
   response.resize( rx_bytes );
@@ -852,10 +815,6 @@ int rfspace_source_c::work( int noutput_items,
     return noutput_items;
   }
 
-#ifdef USE_ASIO
-  udp::endpoint ep;
-  size_t rx_bytes = _u.receive_from( boost::asio::buffer(data, sizeof(data)), ep );
-#else
   struct sockaddr_in sa_in;           /* remote address */
   socklen_t addrlen = sizeof(sa_in);  /* length of addresses */
   ssize_t rx_bytes = recvfrom(_udp, data, sizeof(data), 0, (struct sockaddr *)&sa_in, &addrlen);
@@ -864,7 +823,6 @@ int rfspace_source_c::work( int noutput_items,
     std::cerr << "recvfrom returned " << rx_bytes << std::endl;
     return WORK_DONE;
   }
-#endif
 
   #define HEADER_SIZE 2
   #define SEQNUM_SIZE 2
@@ -892,11 +850,7 @@ int rfspace_source_c::work( int noutput_items,
   if ( diff > 1 )
   {
     std::cerr << "Lost " << diff << " packets from "
-#ifdef USE_ASIO
-              << ep
-#else
               << inet_ntoa(sa_in.sin_addr) << ":" << ntohs(sa_in.sin_port)
-#endif
               << std::endl;
   }
 
@@ -977,48 +931,11 @@ typedef struct
   uint16_t port;
 } unit_t;
 
-#ifdef USE_ASIO
-static void handle_receive( const boost::system::error_code& ec,
-                            std::size_t length,
-                            boost::system::error_code* out_ec,
-                            std::size_t* out_length )
-{
-  *out_ec = ec;
-  *out_length = length;
-}
-
-static void handle_timer( const boost::system::error_code& ec,
-                          boost::system::error_code* out_ec )
-{
-  *out_ec = boost::asio::error::timed_out;
-}
-#endif
 
 static std::vector < unit_t > discover_netsdr()
 {
   std::vector < unit_t > units;
 
-#ifdef USE_ASIO
-  boost::system::error_code ec;
-  boost::asio::io_service ios;
-  udp::socket socket(ios);
-  deadline_timer timer(ios);
-
-  timer.expires_at(boost::posix_time::pos_infin);
-
-  socket.open(udp::v4(), ec);
-
-  if ( ec )
-    return units;
-
-  socket.bind(udp::endpoint(udp::v4(), DISCOVER_CLIENT_PORT), ec);
-
-  if ( ec )
-    return units;
-
-  socket.set_option(udp::socket::reuse_address(true));
-  socket.set_option(boost::asio::socket_base::broadcast(true));
-#else
   int sock;
 
   if ( (sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0 )
@@ -1058,7 +975,6 @@ static std::vector < unit_t > discover_netsdr()
     close(sock);
     return units;
   }
-#endif
   discover_common_msg_t tx_msg;
   memset( (void *)&tx_msg, 0, sizeof(discover_common_msg_t) );
 
@@ -1067,64 +983,18 @@ static std::vector < unit_t > discover_netsdr()
   tx_msg.key[0] = KEY0;
   tx_msg.key[1] = KEY1;
   tx_msg.op = MSG_REQ;
-#ifdef USE_ASIO
-  udp::endpoint ep(boost::asio::ip::address_v4::broadcast(), DISCOVER_SERVER_PORT);
-  socket.send_to(boost::asio::buffer(&tx_msg, sizeof(tx_msg)), ep);
-#else
   sendto(sock, &tx_msg, sizeof(tx_msg), 0, (struct sockaddr *)&peer_sa, sizeof(peer_sa));
-#endif
   while ( true )
   {
     std::size_t rx_bytes = 0;
     unsigned char data[1024*2];
 
-#ifdef USE_ASIO
-    // Set up the variables that receive the result of the asynchronous
-    // operation. The error code is set to would_block to signal that the
-    // operation is incomplete. Asio guarantees that its asynchronous
-    // operations will never fail with would_block, so any other value in
-    // ec indicates completion.
-    ec = boost::asio::error::would_block;
-
-    // Start the asynchronous receive operation. The handle_receive function
-    // used as a callback will update the ec and rx_bytes variables.
-    socket.async_receive( boost::asio::buffer(data, sizeof(data)),
-        boost::bind(handle_receive, _1, _2, &ec, &rx_bytes) );
-
-    // Set a deadline for the asynchronous operation.
-    timer.expires_from_now( boost::posix_time::milliseconds(10) );
-
-    // Start an asynchronous wait on the timer. The handle_timer function
-    // used as a callback will update the ec variable.
-    timer.async_wait( boost::bind(handle_timer, _1, &ec) );
-
-    // Reset the io_service in preparation for a subsequent run_one() invocation.
-    ios.reset();
-
-    // Block until at least one asynchronous operation has completed.
-    do ios.run_one(); while ( ec == boost::asio::error::would_block );
-
-    if ( boost::asio::error::timed_out == ec ) /* timer was first to complete */
-    {
-      // Please note that cancel() has portability issues on some versions of
-      // Microsoft Windows, and it may be necessary to use close() instead.
-      // Consult the documentation for cancel() for further information.
-      socket.cancel();
-
-      break;
-    }
-    else /* socket was first to complete */
-    {
-      timer.cancel();
-    }
-#else
     socklen_t addrlen = sizeof(peer_sa);  /* length of addresses */
     int nbytes = recvfrom(sock, data, sizeof(data), 0, (struct sockaddr *)&peer_sa, &addrlen);
     if ( nbytes <= 0 )
       break;
 
     rx_bytes = nbytes;
-#endif
 
     if ( rx_bytes >= sizeof(discover_common_msg_t) )
     {
@@ -1151,11 +1021,7 @@ static std::vector < unit_t > discover_netsdr()
       }
     }
   }
-#ifdef USE_ASIO
-  socket.close(ec);
-#else
   close(sock);
-#endif
 
   return units;
 }
@@ -1410,6 +1276,21 @@ osmosdr::meta_range_t rfspace_source_c::get_sample_rates()
     range += osmosdr::range_t( 1024000 );
     range += osmosdr::range_t( 1228800 );
     range += osmosdr::range_t( 1807058 );
+  }
+  else if ( RFSPACE_CLOUDSDR == _radio )
+  {
+    /* CloudSDR supports 122.88 MHz / 4*N for N = 15 ... 2560, but lets limit
+     * ourselves to the ones available in SpectraVue
+     */
+    range += osmosdr::range_t( 48000 ); // 40 kHz
+    range += osmosdr::range_t( 61440 ); // 50 kHz
+    range += osmosdr::range_t( 122880 ); // 100 kHz
+    range += osmosdr::range_t( 245760 ); // 200 kHz
+    range += osmosdr::range_t( 370120 ); // 300 kHz
+    range += osmosdr::range_t( 495483 ); // 400 kHz
+    range += osmosdr::range_t( 614400 ); // 500 kHz
+    range += osmosdr::range_t( 1228800 ); // 1 MHz
+    range += osmosdr::range_t( 2048000 ); // 2 MHz (16 bit)
   }
 
   return range;
@@ -1708,7 +1589,8 @@ std::string rfspace_source_c::get_antenna( size_t chan )
 double rfspace_source_c::set_bandwidth( double bandwidth, size_t chan )
 {
   if ( RFSPACE_SDR_IQ == _radio ||
-       RFSPACE_CLOUDIQ == _radio) /* not supported by SDR-IQ or Cloud-IQ */
+       RFSPACE_CLOUDIQ == _radio ||
+       RFSPACE_CLOUDSDR == _radio) /* not supported by SDR-IQ, Cloud-IQ, or CloudSDR */
     return 0.0f;
 
   /* SDR-IP 4.2.5 RF Filter Selection */

@@ -29,7 +29,7 @@
 
 class plutosdr_source_c;
 
-typedef boost::shared_ptr< plutosdr_source_c > plutosdr_source_c_sptr;
+typedef std::shared_ptr< plutosdr_source_c > plutosdr_source_c_sptr;
 
 plutosdr_source_c_sptr make_plutosdr_source_c(const std::string &args = "");
 

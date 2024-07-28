@@ -22,14 +22,14 @@
 
 #include <gnuradio/hier_block2.h>
 
-#include <fcdproplus/fcd.h>
-#include <fcdproplus/fcdproplus.h>
+#include <funcube/fcd.h>
+#include <funcube/fcdpp.h>
 
 #include "source_iface.h"
 
 class fcd_source_c;
 
-typedef boost::shared_ptr< fcd_source_c > fcd_source_c_sptr;
+typedef std::shared_ptr< fcd_source_c > fcd_source_c_sptr;
 
 fcd_source_c_sptr make_fcd_source_c( const std::string & args = "" );
 
@@ -81,10 +81,10 @@ public:
 
 private:
   dongle_type _type;
-  gr::fcdproplus::fcd::sptr _src_v1;
-  gr::fcdproplus::fcdproplus::sptr _src_v2;
+  gr::funcube::fcd::sptr _src_v1;
+  gr::funcube::fcdpp::sptr _src_v2;
   double _lna_gain, _mix_gain, _bb_gain, _freq;
-  int _correct;
+  double _correct;
 };
 
 #endif // FCD_SOURCE_C_H
